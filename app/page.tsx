@@ -1,65 +1,90 @@
-import Image from "next/image";
+import React from "react";
+import Slider from "./Slider"; // client component for scrolling
 
-export default function Home() {
+const QUERY = `
+query SpaceNewsFeed {
+  spaceNewsItems(first: 12) {
+    nodes {
+      id
+      title
+      excerpt
+      slug
+      date
+      featuredImage { node { sourceUrl altText } }
+    }
+  }
+}
+`;
+
+export default async function Home() {
+  const endpoint = process.env.WP_GRAPHQL_ENDPOINT;
+  let posts: any[] = [];
+
+  if (!endpoint) {
+    console.error("WP_GRAPHQL_ENDPOINT is not defined.");
+  } else {
+    try {
+      const res = await fetch(endpoint as string, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: QUERY, variables: { first: 10 } }),
+        next: { revalidate: 60 },
+      });
+      const json = await res.json();
+      if (!json || json.errors) {
+        console.error(json?.errors);
+      } else {
+        posts = json.data.spaceNewsItems.nodes || [];
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
+    <main
+      className="bg-[#1B1B1B] min-h-screen text-white pb-32"
+      style={{ fontFamily: "KHTekaTRIAL-Regular, sans-serif" }}
+    >
+      <style>{`
+        @font-face {
+          font-family: 'KHTekaTRIAL-Regular';
+          src: url('/fonts/KHTekaTRIAL-Regular.otf') format('opentype');
+          font-weight: normal;
+          font-style: normal;
+          font-display: swap;
+        }
+        body, html, * {
+          font-family: 'KHTekaTRIAL-Regular', sans-serif !important;
+        }
+      `}</style>
+      <header className="w-full text-center py-20">
+        <h1 className="text-[72px] font-bold leading-none">Latest News</h1>
+      </header>
+
+      <div className="max-w-full mx-auto px-10 grid grid-cols-1 md:grid-cols-3 gap-20">
+        <section className="flex flex-col justify-between">
+          <div>
+            <h2 className="text-[28px] font-bold leading-tight">
+              Stay up-to-date with the latest developments and exciting announcements from our team.
+            </h2>
+            <p className="text-[14px] opacity-70 mt-6 leading-relaxed max-w-sm">
+              From groundbreaking project launches to new partnerships and industry insights, our Latest News section brings you the most recent updates on everything happening within our company.
+            </p>
             <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              href="/news"
+              className="mt-12 inline-flex items-center bg-[#FF4D2E] px-5 min-w-80 py-3 rounded-md font-medium hover:opacity-90 transition"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+              View All News →
+            </a>
+          </div>
+        </section>
+
+        {/* Client-side slider */}
+        <section className="md:col-span-2 relative">
+          <Slider posts={posts} />
+        </section>
+      </div>
+    </main>
   );
 }
